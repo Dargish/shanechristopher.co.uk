@@ -2,11 +2,10 @@
 <html>
 	<head>
 		<link rel="stylesheet" type="text/css" href="../../scstyle.css">
-		<link rel="stylesheet" href="../../highlight/styles/default.css">
-		<script src="../../highlight/highlight.pack.js"></script>
-		<script>hljs.initHighlightingOnLoad();</script>
+		<link rel="stylesheet" href="../../prism/prism.css">
+		<script src="../../prism/prism.js"></script>
 
-		<title>Building a Hex Based Game Part 2: WIP</title>
+		<title>Building a Hex Based Game Part 2: Tile Types and smoother camera movement</title>
 		<meta name="keywords" content="Shane Christopher,Portfolio,CV,Computer,Graphics,Programming,Rendering,Shaders,Tutorial,Unity">
 		<meta name="author" content="Shane Christopher">
 	</head>
@@ -14,7 +13,7 @@
 		<div id="container" align="center">
 			<div id="header" style="text-align:center">
 				<h1>Building a Hex Based Game</h1>
-				<h2>Part 2: WIP</h2>
+				<h2>Part 2: Tile Types and Smoother Camera</h2>
 				<<a href="hex_game_01.html">Back</a>
 				<div class="divider">
 				</div>
@@ -25,8 +24,133 @@
 				Next
 			</div>
 
-			<div>
-			Work in progress... check back soon!
+			<div class="body" align="left">
+				<p>In this tutorial we'll look at adding some more tile types to our hex map, the first step in doing that is to bring some
+				more blend files into our project. For this example I created very basic tiles for mountains, hills, grass and water. As
+				this is just a prototype we don't need to worry too much about the look of things, you could spend hours making really nice
+				looking tiles or you could make something quickly and worry and polishing the look of your game in the future.</p>
+
+				<img src="resources/tile_types.png" alt="Tile types"/>
+
+				<p>Download the required blend files here:</p>
+				<ul>
+					<li><a href="resources/mountain.blend">Mountain</a></li>
+					<li><a href="resources/hill.blend">Hill</a></li>
+					<li><a href="resources/grass.blend">Grass</a></li>
+					<li><a href="resources/river.blend">River</a></li>
+				</ul>
+				<p>and place them into your Assets directory under Resources/Models.</p>
+
+				<p>Now let's take a look at the code changes needed to bring these into use<p>
+
+				<p>First of all in our HexMap class we're going to add some more public and private variables to allow us to change at run-
+				time the height where each of the tiles is instantiated. When creating our tiles we will query 
+				<a href="http://docs.unity3d.com/ScriptReference/Mathf.PerlinNoise.html">Mathf.PerlinNoise</a> to give us a height between
+				0.0 and 1.0 so our heights for the different tiles should lie in that range.</p>
+<pre><code class="language-csharp">
+	public int Width = 16;
+	public int Height = 32;
+	public float Scale = 4.0f;
+	public int Seed = 1;
+	public float MountainHeight = 0.8f;
+	public float HillHeight = 0.64f;
+	public float GrassHeight = 0.4f;
+
+	int m_width;
+	int m_height;
+	float m_scale;
+	float m_seed;
+	float m_mountainHeight;
+	float m_hillHeight;
+	float m_grassHeight;
+	GameObject[,] m_hexes;
+
+</code></pre>
+				<p>We already were using Width and Height. We have added in a Scale value which is used to determine the size of features
+				in the terrain, for example a larger scale will give us bigger mountain ranges and bigger lakes and seas. We have also
+				added in a Seed value which we will use when sampling the Perlin noise later. The mountain, hill and grass height variables
+				have also been added.</p>
+
+				<p>The RequiresReset function has to be updated to handle the new variables as well, eventually we will write a helper
+				class so that we don't have to manually check for changes in each variable. That will be in a later tutorial though.</p>
+
+<pre><code class="language-csharp">
+	bool RequiresReset()
+	{
+		return (
+			Width != m_width ||
+			Height != m_height || 
+			Scale != m_scale ||
+			Seed != m_seed ||
+			MountainHeight != m_mountainHeight || 
+			HillHeight != m_hillHeight ||
+			GrassHeight != m_grassHeight
+			);
+	}
+	
+</code></pre>
+				<p>And now we come to ResetHexMap where again the majority of the interesting code lives. We will slowly start to split
+				some of this functionality out into a Tile class in future tutorials to allow us greater flexibility but for now we keep
+				all of the functionality in the one function for quicker prototyping.</p>
+
+<pre><code class="language-csharp">
+	void ResetHexMap()
+	{
+		m_width = Width;
+		m_height = Height;
+		m_scale = Scale;
+		m_seed = Seed;
+		m_mountainHeight = Mathf.Max (HillHeight, Mathf.Min (1.0f, MountainHeight));
+		MountainHeight = m_mountainHeight;
+		m_hillHeight = Mathf.Max (GrassHeight, Mathf.Min (MountainHeight, HillHeight));
+		HillHeight = m_hillHeight;
+		m_grassHeight = Mathf.Max (0.0f, Mathf.Min (HillHeight, GrassHeight));
+		GrassHeight = m_grassHeight;
+		m_hexes = new GameObject[m_width, m_height];
+		for(int z = 0; z < m_height; ++z)
+		{
+			float rowXOffset = (z % 2 == 0) ? 0.0f : 0.75f;
+			for(int x = 0; x < m_width; ++x)
+			{
+				string resource = "Models/river";
+				float r = Mathf.PerlinNoise((x / m_scale) + m_seed, (z / m_scale) + m_seed);
+				if (r > m_mountainHeight)
+				{
+					resource = "Models/mountain";
+				}
+				else if (r > m_hillHeight)
+				{
+					resource = "Models/hill";
+				}
+				else if (r > m_grassHeight)
+				{
+					resource = "Models/grass";
+				}
+				m_hexes[x, z] = (GameObject)Instantiate(Resources.Load(resource));
+				m_hexes[x, z].transform.position = new Vector3(x * 1.5f + rowXOffset, 0.0f, z * 0.433f);
+				m_hexes[x, z].transform.parent = gameObject.transform;
+			}
+		}
+	}
+	
+</code></pre>
+
+				<p>When setting our private variables to the public facing variables we do some bounds checking to ensure that mountains
+				are always higher than hills which are higher than grass tiles and all of them are bounded in the 0.0 to 1.0 range.</p>
+
+				<p>In the iteration through the tiles we use
+				<a href="http://docs.unity3d.com/ScriptReference/Mathf.PerlinNoise.html">Mathf.PerlinNoise</a> by passing through the x and
+				y positions, scaled by our scaling value with the seed added on. The seed essentially shifts the values returned along the
+				x and y axes.</p>
+
+				<p>We then check the height returned by the noise function to determine which tile should be placed and creating it. Note
+				that we now also set the parent of the tiles transform to the transform of the game object to which this script is
+				attached. This gives us a neater display in the Hierarchy view in the editor.</p>
+
+				<p>So in the end this looks like this:</p>
+				<img src="resources/Screenshot_02.png" alt="Screenshot 02"/>
+
+				<p>The complete source code for the HexMap class can be found <a href="resources/HexMap.cs" target="_blank">here</a></p>
 			</div>
 
 			<div id="footer" style="text-align:center">

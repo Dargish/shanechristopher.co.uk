@@ -1,3 +1,9 @@
+* {
+	font-family:Trebuchet MS;
+}
+code {
+	font-family:Lucida Console;
+}
 body {
 	background-color: #222222;
 	color: #D2D2D2;
