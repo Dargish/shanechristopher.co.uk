@@ -1,0 +1,140 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="../../scstyle.css">
+		<link rel="stylesheet" href="../../prism/prism.css">
+		<script src="../../prism/prism.js"></script>
+
+		<title>Building a Hex Based Game Part 3: Smoother Camera Movement</title>
+		<meta name="keywords" content="Shane Christopher,Portfolio,CV,Computer,Graphics,Programming,Rendering,Shaders,Tutorial,Unity">
+		<meta name="author" content="Shane Christopher">
+	</head>
+	<body>
+		<div id="container" align="center">
+			<div id="header" style="text-align:center">
+				<h1>Building a Hex Based Game</h1>
+				<h2>Part 3: Smoother Camera Movement</h2>
+				<<a href="hex_game_02.html">Back</a>
+				<div class="divider">
+				</div>
+				<a href="../../index.html">Home</a>
+				<div class="divider"/>
+				</div>
+				<!--<a href="hex_game_04.html">Next</a>-->
+				Next
+			</div>
+
+			<div class="body" align="left">
+				<p>This will be a pretty quick update that will change our camera from directly setting it's position to using a velocity
+				to create a smoother movement and zoom. To achieve this we must add some new variables to our CameraController class.</p>
+
+<pre><code class="language-csharp">
+public class CameraController : MonoBehaviour
+{
+	public float MovementSpeed = 0.25f;
+	public float ZoomSpeed = 2.0f;
+	public float ClosestZoom = 1.0f;
+	public float FurthestZoom = 8.0f;
+	public float Dampening = 0.7f;
+	public float MaxSpeed = 0.5f;
+
+	Vector3 m_velocity;
+
+</code></pre>
+			
+				<p>We've added Dampening, MaxSpeed and a private velocity variable. The dampening will control how quickly how velocity drains
+				off and the camera comes to a stop after the last movement input. The max speed does exactly what you think, it will stop the
+				velocity from getting too high if the user just holds down a movement input. The velocity is stored as a Vector3 which we can
+				simply add to our position later. First let's have a look at the changes to the Update function</p>
+
+<pre><code class="language-csharp">	
+	void Update ()
+	{
+		float vertical = Input.GetAxis("Vertical");
+		float horizontal = Input.GetAxis("Horizontal");
+		float zoom = -Input.GetAxis("Mouse ScrollWheel");
+		m_velocity.x += horizontal * MovementSpeed;
+		m_velocity.z += vertical * MovementSpeed;
+		m_velocity.y += zoom * ZoomSpeed;
+		m_velocity.x = Mathf.Max (-MaxSpeed, Mathf.Min (m_velocity.x, MaxSpeed));
+		m_velocity.z = Mathf.Max (-MaxSpeed, Mathf.Min (m_velocity.z, MaxSpeed));
+		m_velocity.y = Mathf.Max (-MaxSpeed, Mathf.Min (m_velocity.y, MaxSpeed));
+	}
+
+</code></pre>
+
+				<p>The first thing you'll notice is that we're no longer changing our position in the Update function. Instead we will update
+				the position in <a href="http://docs.unity3d.com/ScriptReference/MonoBehaviour.FixedUpdate.html">FixedUpdate</a>. FixedUpdate
+				is called after a fixed amount of time has elapsed whereas 
+				<a href="http://docs.unity3d.com/ScriptReference/MonoBehaviour.Update.html">Update</a> is called when a frame is rendered. This
+				can mean that if the frame rate is low that FixedUpdate gets called several times between. Conversely if the frame rate is high
+				the scene may be rendered several times between each FixedUpdate call. For a physics simulation it makes more sense to keep the
+				user input in the Update function and the physics calculatins in the FixedUpdate function. This is what we'll be doing here.</p>
+
+				<p>Back to the code in our Update function though, we are still collecting vertical, horizontal and zoom inputs as before by
+				querying the <a href="http://docs.unity3d.com/ScriptReference/Input.GetAxis.html">Input.GetAxis</a> function. Now however
+				instead of just adding this to our position we are adding the values to our velocity, we also don't need to worry about our
+				movement bounds here. We do however want to ensure that our velocity cannot keep growing larger so we limit it to negative or
+				position MaxSpeed.</p>
+
+				<p>Now let's look at FixedUpdate where our position will be updated with the velocity that we have derived from the users input</p>
+
+<pre><code class="language-csharp">
+	void FixedUpdate()
+	{
+		Vector3 position = gameObject.transform.position;
+		position += m_velocity;
+		if (position.y < ClosestZoom)
+		{
+			position.y = ClosestZoom;
+			m_velocity.y = 0.0f;
+		}
+		if (position.y > FurthestZoom)
+		{
+			position.y = FurthestZoom;
+			m_velocity.y = 0.0f;
+		}
+		gameObject.transform.position = position;
+		m_velocity *= Dampening;
+		if (m_velocity.magnitude < 0.01f)
+		{
+			m_velocity = Vector3.zero;
+		}
+	}
+
+</code></pre>
+
+				<p>Here we query the current position and add the velocity to it. We then check our movement bounds to ensure that we don't
+				zoom too close or too far away. One minor difference is that if we do get too close or too far away we also set the velocity
+				to zero.</p>
+
+				<p>After this we apply the dampening to our velocity and check if it gets to a point so low that we can set it to zero. If we
+				don't do this check the velocity will keep getting lower and lower but will still very slowly affect our position.</p>
+
+				<p>Let's see how this looks now:</p>
+
+				<video width="820" height="460" loop controls>
+					<source src="resources/video_02.mp4" type="video/mp4">
+					Your browser does not support the video tag.
+				</video>
+
+				<p>Much better, smooth natural movement and zoom. You can tweak the dampening and speed values to achieve the perfect movement
+				for you.</p>
+
+				<p>The full source code for the CameraController class can be found <a href="resources/CameraController.cs" target="_blank">here</a>.</p>
+
+			</div>
+
+			<div id="footer" style="text-align:center">
+				<a href="hex_game_02.html">Back</a>
+				<div class="divider">
+				</div>
+				<a href="../../index.html">Home</a>
+				<div class="divider"/>
+				</div>
+				<!--<a href="hex_game_04.html">Next</a>-->
+				Next
+			</div>	
+		</div>	
+	</body>
+</html>
