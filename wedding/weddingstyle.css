@@ -1,0 +1,98 @@
+* {
+	font-family:Trebuchet MS;
+}
+
+code {
+	font-family:Lucida Console;
+}
+
+body {
+	background-color: #E8E5DD;
+	color: #555555;
+}
+
+h1 {
+	color: #555555;
+}
+
+hr {
+	border-color: #555555;
+    margin-top: 10px;
+    margin-bottom: 10px;
+	max-width: 940px;
+}
+
+a:link {
+	padding: 0px 20px;
+    color: #555555;
+    font-size: 32px;
+}
+
+a:visited {
+	padding: 0px 20px;
+    color: #555555;
+    font-size: 32px;
+}
+
+.preload {
+	display: none;
+}
+
+.body {
+	max-width: 940px;
+}
+
+#donateblock {
+
+	display : inline-block;
+}
+
+.blocks a {
+
+	display: inline-block;
+
+	background-size: 100%;
+
+	padding: 0px 0px;
+
+	margin: 3px;
+
+	width: 256px;
+
+	height: 256px;
+
+	-webkit-transition: background-image 0.2s ease-in-out;
+
+	-moz-transition: background-image 0.2s ease-in-out;
+
+	-ms-transition: background-image 0.2s ease-in-out;
+
+	-o-transition: background-image 0.2s ease-in-out;
+
+	transition: background-image 0.2s ease-in-out;
+
+}
+
+.blocks a.beachcocktails {
+	background-image: url( images/beachcocktails.png );
+}
+
+.blocks a.beachcocktails:hover {
+	background-image: url( images/beachcocktails_over.png );
+}
+
+.blocks a.kayaking {
+	background-image: url( images/kayaking.png );
+}
+
+.blocks a.kayaking:hover {
+	background-image: url( images/kayaking_over.png );
+}
+
+.blocks a.roadtrip {
+	background-image: url( images/roadtrip.png );
+}
+
+.blocks a.roadtrip:hover {
+	background-image: url( images/roadtrip_over.png );
+}
